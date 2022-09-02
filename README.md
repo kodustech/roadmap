@@ -16,18 +16,9 @@ Aqui você vai encontrar tudo o que precisa saber para contribuir com essas inic
 O roadmap está separado em 4 status principais.  Sendo eles:
 
  - **Ideas:** Aqui os itens são apenas ideias, as vezes só com o título, necessitam de mais informações para irem para a próxima etapa; 
- - **Future:** Aqui os itens já tem mais informações do que queremos construir mas ainda estão em fase de descoberta com o time da EZ e a comunidade. Podem ou não ser implementadas;
+ - **Under consideration:** Aqui os itens já tem mais informações do que queremos construir mas ainda estão em fase de discovery com o time da EZ e a comunidade. Podem ou não ser implementadas;
  - **Soon:** São itens que já sabemos que queremos entregar mas ainda estamos entendendo melhor como entregar da melhor maneira;
  - **In progress:** São itens que já estão sendo endereçados. Ou seja já está no backlog do nosso time de produto & engenharia e já temos uma noção de quando vai pro ar.
-
-
-## Áreas do produto
-Utilizamos tags para melhor identificação de qual área do produto pertence aquele item. Temos as seguintes áreas:
-
-- **career-product:** Itens orientados a área de carreira da plataforma. Geralmente funcionalidades relacionadas a processo seletivo, página de carreiras e entre outros;
-- **education-product:** Itens orientados a educação e conteúdo para os talentos. Por exemplo integração com plataforma de cursos/conteúdos.
-- **community-product:** Itens orientados a comunidade. Por exemplo integração da plataforma da EZ com o Discord ou mentorias.
-- **ezcoin-product:** Itens orientados as moedas. 
 
 ## Outras tags
 - **Data-science:** Itens que precisam do time de data-science envolvido;
