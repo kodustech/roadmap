@@ -3,6 +3,11 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/roadmap/*"
+  to = "/:splat"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
@@ -10,9 +15,14 @@
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Content-Type = "text/javascript"
+    Content-Type = "application/javascript"
 
 [[headers]]
   for = "/*.mjs"
   [headers.values]
-    Content-Type = "text/javascript" 
+    Content-Type = "application/javascript"
+
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Content-Type = "application/javascript" 
