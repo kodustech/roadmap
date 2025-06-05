@@ -49,7 +49,9 @@
 
   const statusCategories = {
     'To Do': 'planned',
-    'In Progress': 'in-progress',
+    'IDEAS': 'planned',
+    'Ready To Do': 'planned',
+    'In Progress': 'wip',
     'Done': 'done'
   };
 
