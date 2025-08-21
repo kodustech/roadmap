@@ -3,49 +3,10 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
 
-  const VOTES_ENDPOINT = import.meta.env.VITE_VOTES_ENDPOINT;
-
   let epics = [];
   let loading = false;
-  let votingLoading = false;
   let error = null;
   let activeTab = 'all';
-
-  // Função para obter o userId do cookie
-  function getUserIdFromCookie() {
-    const cookies = document.cookie.split(';');
-    const userIdCookie = cookies.find(cookie => cookie.trim().startsWith('roadmap_user_id='));
-    return userIdCookie ? userIdCookie.split('=')[1].trim() : null;
-  }
-
-  // Função para salvar o userId no cookie (válido por 1 ano)
-  function saveUserIdToCookie(id) {
-    const oneYear = 365 * 24 * 60 * 60 * 1000;
-    const expires = new Date(Date.now() + oneYear).toUTCString();
-    document.cookie = `roadmap_user_id=${id};expires=${expires};path=/`;
-  }
-
-  // Inicializa o userId de forma consistente
-  let userId = localStorage.getItem('roadmap_user_id') || getUserIdFromCookie();
-  
-  if (!userId) {
-    userId = crypto.randomUUID();
-    localStorage.setItem('roadmap_user_id', userId);
-    saveUserIdToCookie(userId);
-    console.log('Novo User ID criado:', userId);
-  } else {
-    // Garante que o ID está salvo em ambos os lugares
-    localStorage.setItem('roadmap_user_id', userId);
-    saveUserIdToCookie(userId);
-    console.log('User ID existente:', userId);
-  }
-
-  // Debug: Monitora mudanças no userId
-  $: {
-    console.log('Estado atual do userId:', userId);
-    console.log('localStorage userId:', localStorage.getItem('roadmap_user_id'));
-    console.log('cookie userId:', getUserIdFromCookie());
-  }
 
   const statusCategories = {
     'To Do': 'planned',
@@ -70,48 +31,26 @@
     try {
       loading = true;
       error = null;
-      
+
+      // Verifica se o endpoint está configurado
+      const endpoint = import.meta.env.VITE_N8N_ENDPOINT;
+      if (!endpoint) {
+        throw new Error('VITE_N8N_ENDPOINT environment variable is not configured');
+      }
+
       // Busca os épicos do Jira
-      const response = await fetch(import.meta.env.VITE_N8N_ENDPOINT);
+      const response = await fetch(endpoint);
       if (!response.ok) {
-        throw new Error('Failed to fetch epics');
+        throw new Error(`Failed to fetch epics: ${response.status} ${response.statusText}`);
       }
+
+      // Verifica se a resposta é JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON. Check if the endpoint is correct.');
+      }
+
       const data = await response.json();
-      
-      // Busca os votos
-      const votesResponse = await fetch(VOTES_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          action: 'get_votes'
-        })
-      });
-
-      if (!votesResponse.ok) {
-        throw new Error('Failed to fetch votes');
-      }
-
-      const votesResult = await votesResponse.json();
-      console.log('Resposta dos votos:', votesResult);
-
-      // Processa os votos
-      const votesCount = {};
-      const userVotes = new Set();
-
-      votesResult.forEach(vote => {
-        // Conta total de votos por epic
-        if (!votesCount[vote.epic_id]) {
-          votesCount[vote.epic_id] = 0;
-        }
-        votesCount[vote.epic_id]++;
-
-        // Marca os votos do usuário atual
-        if (vote.user_id === userId) {
-          userVotes.add(vote.epic_id);
-        }
-      });
 
       epics = data.map(issue => ({
         id: issue.id,
@@ -119,14 +58,11 @@
         summary: issue.fields.summary,
         description: issue.fields.description || issue.fields.customfield_10011 || '',
         status: issue.fields.status.name,
-        category: statusCategories[issue.fields.status.name] || 'planned',
-        votes: votesCount[issue.key] || 0,
-        hasVoted: userVotes.has(issue.key)
+        category: statusCategories[issue.fields.status.name] || 'planned'
       }));
-      
-      // Ordena os épicos por votos e depois por categoria
+
+      // Ordena os épicos por categoria e depois por nome
       epics.sort((a, b) => {
-        if (b.votes !== a.votes) return b.votes - a.votes;
         if (a.category !== b.category) return a.category.localeCompare(b.category);
         return a.summary.localeCompare(b.summary);
       });
@@ -139,57 +75,7 @@
     }
   }
 
-  async function handleVote(epic) {
-    try {
-      if (!userId) {
-        console.error('UserId não encontrado');
-        error = 'User ID not found. Please refresh the page.';
-        return;
-      }
 
-      votingLoading = true;
-      const action = epic.hasVoted ? 'remove_vote' : 'add_vote';
-      
-      console.log('Enviando voto:', {
-        action,
-        epicKey: epic.key,
-        userId,
-      });
-
-      const response = await fetch(VOTES_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          action,
-          epicKey: epic.key,
-          userId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update vote: ${response.status} ${response.statusText}`);
-      }
-
-      // Atualiza o estado local
-      epic.hasVoted = !epic.hasVoted;
-      epic.votes = epic.votes + (epic.hasVoted ? 1 : -1);
-
-      // Reordena os épicos
-      epics = [...epics].sort((a, b) => {
-        if (b.votes !== a.votes) return b.votes - a.votes;
-        if (a.category !== b.category) return a.category.localeCompare(b.category);
-        return a.summary.localeCompare(b.summary);
-      });
-
-    } catch (err) {
-      console.error('Error voting:', err);
-      error = err.message;
-    } finally {
-      votingLoading = false;
-    }
-  }
 
   function getFilteredEpics(tab) {
     switch (tab) {
@@ -249,16 +135,6 @@
           <div class="roadmap-item">
             <div class="epic-header">
               <h3>{epic.summary}</h3>
-              <button 
-                class="vote-button" 
-                class:voted={epic.hasVoted}
-                on:click={() => handleVote(epic)}
-                disabled={votingLoading}
-                title={epic.hasVoted ? 'Clique para remover seu voto' : 'Clique para votar'}
-              >
-                <span class="vote-count">{epic.votes}</span>
-                <span class="vote-icon">{epic.hasVoted ? '▼' : '▲'}</span>
-              </button>
             </div>
             <p class="description">{epic.description || 'No description available'}</p>
           </div>
@@ -401,62 +277,10 @@
   }
 
   .epic-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
     margin-bottom: 12px;
   }
 
   .epic-header h3 {
     margin: 0;
-    flex: 1;
-    margin-right: 12px;
-  }
-
-  .vote-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: transparent;
-    border: 1px solid #30304B;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    color: #A0A0B0;
-    transition: all 0.2s ease;
-    position: relative;
-  }
-
-  .vote-button:hover {
-    border-color: #B1754A;
-    color: #FFFFFF;
-  }
-
-  .vote-button.voted {
-    background-color: #B1754A;
-    border-color: #B1754A;
-    color: #FFFFFF;
-  }
-
-  .vote-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .vote-count {
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 2px;
-  }
-
-  .vote-icon {
-    font-size: 12px;
-  }
-
-  .vote-status {
-    font-size: 12px;
-    color: #B1754A;
-    margin-top: 8px;
-    font-style: italic;
   }
 </style> 

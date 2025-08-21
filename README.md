@@ -1,6 +1,28 @@
-# Svelte + Vite
+# Roadmap App
 
-This template should help get you started developing with Svelte in Vite.
+A Svelte application for displaying project roadmaps with epics from Jira.
+
+## Setup
+
+1. Copy `.env.example` to `.env` and configure the required environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Update the `.env` file with your actual endpoints:
+   - `VITE_N8N_ENDPOINT`: URL of your n8n webhook that provides Jira epics data
+
+3. Install dependencies and run:
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+## Features
+
+- Display epics from Jira organized by status (To Do, In Progress, Done)
+- Responsive design
+- Real-time data fetching from n8n webhook
 
 ## Recommended IDE Setup
 
